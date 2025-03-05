@@ -1,9 +1,12 @@
 #include "nu32dip.h" // config bits, constants, funcs for startup and UART
 #include "encoder.h"
+#include "utilities.h"
 #define BUF_SIZE 200
 int main()
 {
     UART2_Startup();
+    enum mode_t mode = IDLE;
+    set_mode(mode);
     char buffer[BUF_SIZE];
     NU32DIP_Startup(); // cache on, min flash wait, interrupts on, LED/button init, UART init
     NU32DIP_GREEN = 1; // turn off the LEDs
@@ -17,9 +20,8 @@ int main()
         NU32DIP_YELLOW = 1;                  // clear the error LED
         switch (buffer[0])
         {
-        case 'c':
+        case 'c': // read encoder counts
         {
-            // read encoder counts
             WriteUART2("a");
             while (!get_encoder_flag())
             {
@@ -31,9 +33,8 @@ int main()
             NU32DIP_WriteUART1(m);
             break;
         }
-        case 'd':
+        case 'd': // read encoder degrees
         {
-            // read encoder degrees
             WriteUART2("a");
             while (!get_encoder_flag())
             {
@@ -42,19 +43,44 @@ int main()
             char m[50];
             int p = get_encoder_count();
             float deg = 360.0 * ((float)p / (334.0 * 4.0));
-            sprintf(m, "%f degrees\r\n", deg);
+            sprintf(m, "%f\r\n", deg);
             NU32DIP_WriteUART1(m);
             break;
         }
-        case 'e':
+        case 'e': // reset encoder
         {
-            // reset encoder
             WriteUART2("b");
+            break;
+        }
+        case 'r': // get mode
+        {
+            mode = get_mode();
+            char m[50];
+            switch (mode)
+            {
+            case IDLE: // IDLE mode
+                sprintf(m, "IDLE\n");
+                break;
+            case PWM: // PWM mode
+                sprintf(m, "PWM\n");
+                break;
+            case ITEST: // ITEST mode
+                sprintf(m, "ITEST\n");
+                break;
+            case HOLD: // HOLD mode
+                sprintf(m, "HOLD\n");
+                break;
+            case TRACK: // TRACK mode
+                sprintf(m, "TRACK\n");
+                break;
+            }
+            NU32DIP_WriteUART1(m);
             break;
         }
         case 'q':
         {
-            // handle q for quit. Later you may want to return to IDLE mode here.
+            mode = IDLE;
+            set_mode(mode);
             break;
         }
         default:
