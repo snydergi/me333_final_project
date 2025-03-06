@@ -16,6 +16,9 @@ while not has_quit:
     # display the menu options
     print('\td: Read Encoder (deg) \tq: Quit')
     print('\tc: Read Encoder (counts) \te: Reset Encoder')
+    print('\tr: Get Mode \ta: Read Current Sensor (ADC counts)')
+    print('\tp: Unpower Motor \tf: Set PWM (-100 to 100)')
+    print('\tb: Read Current Sensor (mA) \t')
     # read the user's choice
     selection = input('\nENTER COMMAND: ')
     selection_endline = selection + '\n'
@@ -38,6 +41,19 @@ while not has_quit:
     elif (selection == 'r'):  # Get Mode
         n_str = ser.read_until(b'\n')
         print('Got back: ', n_str[0:-1])  # remove the newline character while printing
+    elif (selection == 'a'):  # read current sensor (ADC counts)
+        n_str = ser.read_until(b'\n')
+        print('Got back: ', float(n_str))
+    elif (selection == 'b'):  # read current sensor (mA)
+        n_str = ser.read_until(b'\n')
+        print('Got back: ', float(n_str))
+    elif (selection == 'p'):  # unpowered the motor
+        print('Unpowered Motor.')
+    elif (selection == 'f'):  # set PWM (-100 to 100)
+        n_str = input('Enter PWM Frequency (-100 to 100): ')  # get the number to send
+        n_int = int(n_str)  # turn it into an int
+        ser.write((str(n_int) + '\n').encode())  # send the number
+        print('Set PWM to: ' + (n_str))
     else:
         print('Invalid Selection ' + selection_endline)
 
