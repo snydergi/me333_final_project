@@ -187,6 +187,42 @@ int main()
             set_mode(mode);
             break;
         }
+        case 'g': // Set Current Gains
+        {
+            break;
+        }
+        case 'h': // Get Current Gains
+        {
+            break;
+        }
+        case 'k': // Test Current Control
+        {
+            break;
+        }
+        case 'i': // Set Position Gains
+        {
+            break;
+        }
+        case 'j': // Get Position Gains
+        {
+            break;
+        }
+        case 'l': // Go to angle (deg)
+        {
+            break;
+        }
+        case 'm': // Load step trajectory
+        {
+            break;
+        }
+        case 'n': // Load cubic trajectory
+        {
+            break;
+        }
+        case 'o': // Execute trajectory
+        {
+            break;
+        }
         default:
         {
             NU32DIP_YELLOW = 0; // turn on LED2 to indicate an error

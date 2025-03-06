@@ -14,11 +14,24 @@ has_quit = False
 while not has_quit:
     print('PIC32 MOTOR DRIVER INTERFACE')
     # display the menu options
-    print('\td: Read Encoder (deg) \tq: Quit')
-    print('\tc: Read Encoder (counts) \te: Reset Encoder')
-    print('\tr: Get Mode \ta: Read Current Sensor (ADC counts)')
-    print('\tp: Unpower Motor \tf: Set PWM (-100 to 100)')
-    print('\tb: Read Current Sensor (mA) \t')
+    print('\tCOMMAND OPTIONS:')
+    print('\tEncoder:')
+    print('\t  c: Read Encoder (counts)    d: Read Encoder (deg)')
+    print('\t  e: Reset Encoder')
+    print('\tCurrent Sensor:')
+    print('\t  b: Read Current Sensor (mA) a: Read Current Sensor (ADC counts)')
+    print('\tPWM Control:')
+    print('\t  f: Set PWM (-100 to 100)    p: Unpower Motor')
+    print('\tGains:')
+    print('\t  i: Set Position Gains       j: Get Position Gains')
+    print('\t  g: Set Current Gains        h: Get Current Gains')
+    print('\tControl:')
+    print('\t  k: Test Current Control     l: Go to Angle (deg)')
+    print('\tTrajectory:')
+    print('\t  m: Load Step Trajectory     n: Load Cubic Trajectory')
+    print('\t  o: Execute Trajectory')
+    print('\tMisc:')
+    print('\t  r: Get Mode                 q: Quit')
     # read the user's choice
     selection = input('\nENTER COMMAND: ')
     selection_endline = selection + '\n'
@@ -54,6 +67,24 @@ while not has_quit:
         n_int = int(n_str)  # turn it into an int
         ser.write((str(n_int) + '\n').encode())  # send the number
         print('Set PWM to: ' + (n_str))
+    elif (selection == 'i'):  # set position gains
+        print('')
+    elif (selection == 'j'):  # get position gains
+        print('')
+    elif (selection == 'l'):  # go to angle (deg)
+        print('')
+    elif (selection == 'g'):  # set current gains
+        print('')
+    elif (selection == 'h'):  # get current gains
+        print('')
+    elif (selection == 'k'):  # test current control
+        print('')
+    elif (selection == 'm'):  # load step trajectory
+        print('')
+    elif (selection == 'n'):  # load cubic trajectory
+        print('')
+    elif (selection == 'o'):  # execute trajectory
+        print('')
     else:
         print('Invalid Selection ' + selection_endline)
 
