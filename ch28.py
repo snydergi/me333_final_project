@@ -1,10 +1,35 @@
-# chapter 28 in python
-
-# sudo apt-get install python3-pip
-# python3 -m pip install pyserial
-# sudo apt-get install python3-matplotlib
-
 import serial
+import matplotlib.pyplot as plt
+from statistics import mean
+from genref import genRef
+
+
+def read_plot_matrix():
+    n_str = ser.read_until(b'\n')  # get the number of data points to receive
+    n_int = int(n_str)  # turn it into an int
+    print('Data length = ' + str(n_int))
+    ref = []
+    data = []
+    data_received = 0
+    while data_received < n_int:
+        dat_str = ser.read_until(b'\n')  # get the data as a string, ints seperated by spaces
+        dat_f = list(map(float, dat_str.split()))  # now the data is a list
+        ref.append(dat_f[0])
+        data.append(dat_f[1])
+        data_received = data_received + 1
+    meanzip = zip(ref, data)
+    meanlist = []
+    for i, j in meanzip:
+        meanlist.append(abs(i - j))
+    score = mean(meanlist)
+    t = range(len(ref))  # index array
+    plt.plot(t, ref, 'r*-', t, data, 'b*-')
+    plt.title('Score = ' + str(score))
+    plt.ylabel('value')
+    plt.xlabel('index')
+    plt.show()
+
+
 ser = serial.Serial('/dev/ttyUSB0', 230400)
 print('Opening port: ')
 print(ser.name)
@@ -68,23 +93,48 @@ while not has_quit:
         ser.write((str(n_int) + '\n').encode())  # send the number
         print('Set PWM to: ' + (n_str))
     elif (selection == 'i'):  # set position gains
-        print('')
+        n1_str = input('Enter kp_deg: ')  # get the number to send
+        n1_flt = float(n1_str)  # turn it into an int
+        n2_str = input('Enter ki_deg: ')  # get the second number
+        n2_flt = float(n2_str)  # convert it to an int
+        n3_str = input('Enter kd_deg: ')  # get the third number
+        n3_flt = float(n3_str)  # convert it to an int
+        combined_str = f"{n1_flt} {n2_flt} {n3_flt}\n"  # Combine the two numbers into a single string
+        ser.write(combined_str.encode())  # send the number
+        print(f'Set kp_deg to: {n1_flt}, ki_deg to: {n2_flt}, kd_deg to: {n3_flt}')
     elif (selection == 'j'):  # get position gains
-        print('')
+        n_str = ser.read_until(b'\n')
+        print('Got back kp_deg, ki_deg, kd_deg: ', n_str[0:-2])
     elif (selection == 'l'):  # go to angle (deg)
         print('')
     elif (selection == 'g'):  # set current gains
-        print('')
+        n1_str = input('Enter kp_mA: ')  # get the number to send
+        n1_flt = float(n1_str)  # turn it into an int
+        n2_str = input('Enter ki_mA: ')  # get the second number
+        n2_flt = float(n2_str)  # convert it to an int
+        combined_str = f"{n1_flt} {n2_flt}\n"  # Combine the two numbers into a single string
+        ser.write(combined_str.encode())  # send the number
+        print(f'Set kp_mA to: {n1_flt} and ki_mA to: {n2_flt}')
     elif (selection == 'h'):  # get current gains
-        print('')
+        n_str = ser.read_until(b'\n')
+        print('Got back kp_mA, ki_mA: ', n_str[0:-2])
     elif (selection == 'k'):  # test current control
-        print('')
+        read_plot_matrix()
     elif (selection == 'm'):  # load step trajectory
         print('')
     elif (selection == 'n'):  # load cubic trajectory
-        print('')
+        ref = genRef('cubic')
+        # print(len(ref))
+        t = range(len(ref))
+        plt.plot(t, ref, 'r*-')
+        plt.ylabel('ange in degrees')
+        plt.xlabel('index')
+        plt.show()
+        ser.write((str(len(ref)) + '\n').encode())
+        for i in ref:
+            ser.write((str(i) + '\n').encode())
     elif (selection == 'o'):  # execute trajectory
-        print('')
+        read_plot_matrix()
     else:
         print('Invalid Selection ' + selection_endline)
 

@@ -6,6 +6,11 @@
 #define SAMPLE_TIME 6 // 24MHz*250ns
 
 volatile int pwmDuty = 0;
+volatile float kp_mA = 0;
+volatile float ki_mA = 0;
+volatile float kp_deg = 0;
+volatile float ki_deg = 0;
+volatile float kd_deg = 0;
 
 void timer2init()
 {
@@ -40,14 +45,33 @@ void initHBridgeDir()
     LATBbits.LATB3 = 0;   // Set B3 to 1
 }
 
+void sendDataToPython(int *refArray, int *actualArray, int length)
+{
+    // Send the number of data points
+    char buffer[50];
+    sprintf(buffer, "%d\n", length);
+    NU32DIP_WriteUART1(buffer);
+
+    // Send the reference then the actual current data
+    for (int i = 0; i < length; i++)
+    {
+        sprintf(buffer, "%d %d\n", refArray[i], actualArray[i]);
+        NU32DIP_WriteUART1(buffer);
+    }
+}
+
 void __ISR(_TIMER_2_VECTOR, IPL5SOFT) Controller(void)
 {
+    static int counter = 0;             // Counter to keep track of number of samples
+    static int refCurrent = -200;       // Reference current in mA (+200 or -200)
+    static int actualCurrentArray[100]; // Array to store actual current data
+    static int refCurrentArray[100];    // Array to store reference current data
     switch (get_mode())
     {
     case IDLE:
     {
         OC1RS = 0;
-        LATBbits.LATB2 = 0;
+        LATBbits.LATB2 = 0; // Set direction to 0
         break;
     }
     case PWM:
@@ -58,6 +82,43 @@ void __ISR(_TIMER_2_VECTOR, IPL5SOFT) Controller(void)
 
         // Set direction based on sign of pwmDuty
         LATBbits.LATB2 = (pwmDuty >= 0) ? 1 : 0;
+        break;
+    }
+    case ITEST:
+    {
+        if (counter % 25 == 0) // Toggle reference at 0, 25, 50, 75 samples
+        {
+            refCurrent = -refCurrent; // Toggle between +200 and -200 mA
+        }
+        int actualCurrent = INA219_read_current(); // read current in mA
+
+        // PI Controller
+        int error = refCurrent - actualCurrent;
+        static int integral = 0;
+        integral += error;
+        pwmDuty = (kp_mA * error) + (ki_mA * integral);
+        if (pwmDuty > 100)
+        {
+            pwmDuty = 100; // upper bound
+        }
+        else if (pwmDuty < -100)
+        {
+            pwmDuty = -100; // lower bound
+        }
+        OC1RS = (PR3 + 1) * (abs(pwmDuty) / 100.0); // Set PWM duty cycle
+        LATBbits.LATB2 = (pwmDuty >= 0) ? 1 : 0;    // Set direction
+
+        // Save reference and actual current data
+        refCurrentArray[counter] = refCurrent;
+        actualCurrentArray[counter] = actualCurrent;
+        counter++;          // Increment counter
+        if (counter >= 100) // End ITEST mode after 100 samples (two full cycles)
+        {
+            set_mode(IDLE);
+            sendDataToPython(refCurrentArray, actualCurrentArray, 100);
+            counter = 0;  // Reset counter
+            integral = 0; // Reset integral
+        }
         break;
     }
     default:
@@ -184,22 +245,33 @@ int main()
         }
         case 'g': // Set Current Gains
         {
+            NU32DIP_ReadUART1(buffer, BUF_SIZE);
+            sscanf(buffer, "%f %f", &kp_mA, &ki_mA);
             break;
         }
         case 'h': // Get Current Gains
         {
+            char m[50];
+            sprintf(m, "%f %f\r\n", kp_mA, ki_mA);
+            NU32DIP_WriteUART1(m);
             break;
         }
         case 'k': // Test Current Control
         {
+            set_mode(ITEST);
             break;
         }
         case 'i': // Set Position Gains
         {
+            NU32DIP_ReadUART1(buffer, BUF_SIZE);
+            sscanf(buffer, "%f %f %f", &kp_deg, &ki_deg, &kd_deg);
             break;
         }
         case 'j': // Get Position Gains
         {
+            char m[50];
+            sprintf(m, "%f %f %f\r\n", kp_deg, ki_deg, kd_deg);
+            NU32DIP_WriteUART1(m);
             break;
         }
         case 'l': // Go to angle (deg)
