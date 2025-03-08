@@ -5,7 +5,6 @@
 #define BUF_SIZE 200
 #define SAMPLE_TIME 6 // 24MHz*250ns
 
-volatile enum mode_t mode = IDLE;
 volatile int pwmDuty = 0;
 
 void timer2init()
@@ -43,7 +42,7 @@ void initHBridgeDir()
 
 void __ISR(_TIMER_2_VECTOR, IPL5SOFT) Controller(void)
 {
-    switch (mode)
+    switch (get_mode())
     {
     case IDLE:
     {
@@ -73,7 +72,7 @@ int main()
 {
     UART2_Startup();
     INA219_Startup();
-    set_mode(mode);
+    set_mode(IDLE);
     char buffer[BUF_SIZE];
     NU32DIP_Startup(); // cache on, min flash wait, interrupts on, LED/button init, UART init
     NU32DIP_GREEN = 1; // turn off the LEDs
@@ -123,9 +122,8 @@ int main()
         }
         case 'r': // get mode
         {
-            mode = get_mode();
             char m[50];
-            switch (mode)
+            switch (get_mode())
             {
             case IDLE: // IDLE mode
                 sprintf(m, "IDLE\n");
@@ -148,8 +146,7 @@ int main()
         }
         case 'q': // quit
         {
-            mode = IDLE;
-            set_mode(mode);
+            set_mode(IDLE);
             break;
         }
         case 'a': // read current sensor (ADC counts)
@@ -176,15 +173,13 @@ int main()
             if (n >= -100 && n <= 100)
             {
                 pwmDuty = n;
-                mode = PWM;
-                set_mode(mode);
+                set_mode(PWM);
             }
             break;
         }
         case 'p': // unpower the motor
         {
-            mode = IDLE;
-            set_mode(mode);
+            set_mode(IDLE);
             break;
         }
         case 'g': // Set Current Gains
