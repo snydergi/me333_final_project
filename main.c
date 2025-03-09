@@ -6,11 +6,11 @@
 #define SAMPLE_TIME 6 // 24MHz*250ns
 
 volatile int pwmDuty = 0;
-volatile float kp_mA = 0;
-volatile float ki_mA = 0;
-volatile float kp_deg = 0;
-volatile float ki_deg = 0;
-volatile float kd_deg = 0;
+volatile float kp_mA = 0.005;
+volatile float ki_mA = 0.005;
+volatile float kp_deg = 5.0;
+volatile float ki_deg = 0.005;
+volatile float kd_deg = 100.0;
 volatile float desiredAngle = 0;
 volatile int posRefCurrent = 0;
 
