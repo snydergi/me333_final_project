@@ -30,6 +30,40 @@ def read_plot_matrix():
     plt.show()
 
 
+def read_plot_position_matrix():
+    n_str = ser.read_until(b'\n')  # get the number of data points to receive
+    n_int = int(n_str)  # turn it into an int
+    print('Data length = ' + str(n_int))
+    # Lists to store the four values from each line
+    refCur = []
+    refAngle = []
+    actualCur = []
+    actualAng = []
+    data_received = 0
+    while data_received < n_int:
+        dat_str = ser.read_until(b'\n')  # get the data as a string, ints separated by spaces
+        dat_f = list(map(float, dat_str.split()))  # now the data is a list of floats
+        # Ensure there are exactly four numbers in the line
+        if len(dat_f) == 4:
+            refCur.append(dat_f[0])
+            refAngle.append(dat_f[1])
+            actualCur.append(dat_f[2])
+            actualAng.append(dat_f[3])
+            data_received += 1
+        else:
+            print(f"Skipping malformed line: {dat_str}")
+    # Plotting
+    t = range(len(refCur))  # index array
+    plt.plot(t, refCur, 'r*-', label='Reference Current')
+    plt.plot(t, actualCur, 'b*-', label='Actual Current')
+    plt.plot(t, refAngle, 'g*-', label='Reference Angle')
+    plt.plot(t, actualAng, 'y*-', label='Actual Angle')
+    plt.ylabel('value')
+    plt.xlabel('index')
+    plt.legend()
+    plt.show()
+
+
 ser = serial.Serial('/dev/ttyUSB0', 230400)
 print('Opening port: ')
 print(ser.name)
@@ -106,7 +140,10 @@ while not has_quit:
         n_str = ser.read_until(b'\n')
         print('Got back kp_deg, ki_deg, kd_deg: ', n_str[0:-2])
     elif (selection == 'l'):  # go to angle (deg)
-        print('')
+        n_str = input('Enter Angle: ')  # get the number to send
+        n_int = int(n_str)  # turn it into an int
+        ser.write((str(n_int) + '\n').encode())  # send the number
+        read_plot_position_matrix()
     elif (selection == 'g'):  # set current gains
         n1_str = input('Enter kp_mA: ')  # get the number to send
         n1_flt = float(n1_str)  # turn it into an int
