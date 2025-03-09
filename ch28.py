@@ -58,8 +58,8 @@ def read_plot_position_matrix():
     plt.plot(t, actualCur, 'b*-', label='Actual Current')
     plt.plot(t, refAngle, 'g*-', label='Reference Angle')
     plt.plot(t, actualAng, 'y*-', label='Actual Angle')
-    plt.ylabel('value')
-    plt.xlabel('index')
+    plt.ylabel('Value (mA or deg)')
+    plt.xlabel('Index')
     plt.legend()
     plt.show()
 
