@@ -143,7 +143,7 @@ while not has_quit:
         n_str = input('Enter Angle: ')  # get the number to send
         n_int = int(n_str)  # turn it into an int
         ser.write((str(n_int) + '\n').encode())  # send the number
-        read_plot_position_matrix()
+        # read_plot_position_matrix()
     elif (selection == 'g'):  # set current gains
         n1_str = input('Enter kp_mA: ')  # get the number to send
         n1_flt = float(n1_str)  # turn it into an int

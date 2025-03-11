@@ -6,9 +6,9 @@
 #define SAMPLE_TIME 6 // 24MHz*250ns
 
 volatile int pwmDuty = 0;
-volatile float kp_mA = 0.005;
-volatile float ki_mA = 0.005;
-volatile float kp_deg = 5.0;
+volatile float kp_mA = 0.05;
+volatile float ki_mA = 0.05;
+volatile float kp_deg = 6.0;
 volatile float ki_deg = 0.005;
 volatile float kd_deg = 100.0;
 volatile float desiredAngle = 0;
@@ -210,27 +210,27 @@ void __ISR(_TIMER_2_VECTOR, IPL5SOFT) CurrentController(void)
         }
         OC1RS = (PR3 + 1) * (abs(pwmDuty) / 100.0); // Set PWM duty cycle
         LATBbits.LATB2 = (pwmDuty >= 0) ? 1 : 0;    // Set direction
-        // Save reference and actual current data
-        if (counter % 25 == 0)
-        {
-            refCurrentArray[counter / 25] = posRefCurrent;
-            actualCurrentArray[counter / 25] = actualCurrent;
-            refAngleArray[counter / 25] = desiredAngle;
-            WriteUART2("a");
-            while (!get_encoder_flag())
-            {
-            };
-            set_encoder_flag(0);
-            actualAngleArray[counter / 25] = 360.0 * ((float)get_encoder_count() / (334.0 * 4.0));
-        }
-        counter++;            // Increment counter
-        if (counter >= 12500) // End ITEST mode after 100 samples (two full cycles)
-        {
-            set_mode(IDLE);
-            sendPositionDataToPython(refCurrentArray, refAngleArray, actualCurrentArray, actualAngleArray, 500);
-            counter = 0; // Reset counter
-            posIntegral = 0;
-        }
+        // // Save reference and actual current data
+        // if (counter % 25 == 0)
+        // {
+        //     refCurrentArray[counter / 25] = posRefCurrent;
+        //     actualCurrentArray[counter / 25] = actualCurrent;
+        //     refAngleArray[counter / 25] = desiredAngle;
+        //     WriteUART2("a");
+        //     while (!get_encoder_flag())
+        //     {
+        //     };
+        //     set_encoder_flag(0);
+        //     actualAngleArray[counter / 25] = 360.0 * ((float)get_encoder_count() / (334.0 * 4.0));
+        // }
+        // counter++; // Increment counter
+        // if (counter >= 12500)
+        // {
+        //     set_mode(IDLE);
+        //     // sendPositionDataToPython(refCurrentArray, refAngleArray, actualCurrentArray, actualAngleArray, 500);
+        //     counter = 0; // Reset counter
+        //     posIntegral = 0;
+        // }
 
         break;
     }
