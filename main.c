@@ -13,6 +13,9 @@ volatile float ki_deg = 0.005;
 volatile float kd_deg = 100.0;
 volatile float desiredAngle = 0;
 volatile int posRefCurrent = 0;
+volatile int trajLength = 0;
+volatile float trackRefAngle[1000];
+volatile float trackActualAngle[1000];
 
 void timer2init()
 {
@@ -76,6 +79,21 @@ void sendITestDataToPython(int *refArray, int *actualArray, int length)
     }
 }
 
+void sendTrackDataToPython(float *refArray, float *actualArray, int length)
+{
+    // Send the number of data points
+    char buffer[50];
+    sprintf(buffer, "%d\n", length);
+    NU32DIP_WriteUART1(buffer);
+
+    // Send the reference then the actual current data
+    for (int i = 0; i < length; i++)
+    {
+        sprintf(buffer, "%f %f\n", refArray[i], actualArray[i]);
+        NU32DIP_WriteUART1(buffer);
+    }
+}
+
 void sendPositionDataToPython(int *refCurrent, int *refAngle, int *actualCurrent,
                               int *actualAngle, int length)
 {
@@ -121,6 +139,43 @@ void __ISR(_TIMER_1_VECTOR, IPL6SOFT) PositionController(void)
             posRefCurrent = -600; // lower bound
         }
         prevError = errorAng;
+    }
+    case TRACK:
+    {
+        static int trajCounter = 0;
+        static int prevTrackError = 0;
+        static int integralAngle = 0;
+        WriteUART2("a");
+        while (!get_encoder_flag())
+        {
+        };
+        set_encoder_flag(0);
+        int actualAngle = 360.0 * ((float)get_encoder_count() / (334.0 * 4.0));
+        trackActualAngle[trajCounter] = (float)actualAngle;
+        // PID Controller
+        int errorAng = trackRefAngle[trajCounter] - actualAngle;
+        integralAngle += errorAng;
+        posRefCurrent = (kp_deg * errorAng) +
+                        (ki_deg * integralAngle) +
+                        (kd_deg * (errorAng - prevTrackError));
+        if (posRefCurrent > 600)
+        {
+            posRefCurrent = 600; // upper bound
+        }
+        else if (posRefCurrent < -600)
+        {
+            posRefCurrent = -600; // lower bound
+        }
+        prevTrackError = errorAng;
+        trajCounter++;
+        if (trajCounter >= trajLength)
+        {
+            desiredAngle = trackRefAngle[trajCounter - 1];
+            prevTrackError = 0;
+            integralAngle = 0;
+            set_mode(HOLD);
+            // sendTrackDataToPython(trackRefAngle, trackActualAngle, trajLength);
+        }
     }
     }
     IFS0bits.T1IF = 0;
@@ -223,16 +278,36 @@ void __ISR(_TIMER_2_VECTOR, IPL5SOFT) CurrentController(void)
         //     set_encoder_flag(0);
         //     actualAngleArray[counter / 25] = 360.0 * ((float)get_encoder_count() / (334.0 * 4.0));
         // }
-        // counter++; // Increment counter
-        // if (counter >= 12500)
-        // {
-        //     set_mode(IDLE);
-        //     // sendPositionDataToPython(refCurrentArray, refAngleArray, actualCurrentArray, actualAngleArray, 500);
-        //     counter = 0; // Reset counter
-        //     posIntegral = 0;
-        // }
+        counter++; // Increment counter
+        if (counter >= 12500)
+        {
+            counter = 0; // Reset counter
+            posIntegral = 0;
+            set_mode(IDLE);
+            // sendPositionDataToPython(refCurrentArray, refAngleArray, actualCurrentArray, actualAngleArray, 500);
+        }
 
         break;
+    }
+    case TRACK:
+    {
+        int actualCurrent = INA219_read_current(); // read current in mA
+
+        // PI Controller
+        int error = posRefCurrent - actualCurrent;
+        static int posIntegral = 0;
+        posIntegral += error;
+        pwmDuty = (kp_mA * error) + (ki_mA * posIntegral);
+        if (pwmDuty > 100)
+        {
+            pwmDuty = 100; // upper bound
+        }
+        else if (pwmDuty < -100)
+        {
+            pwmDuty = -100; // lower bound
+        }
+        OC1RS = (PR3 + 1) * (abs(pwmDuty) / 100.0); // Set PWM duty cycle
+        LATBbits.LATB2 = (pwmDuty >= 0) ? 1 : 0;    // Set direction
     }
     default:
     {
@@ -399,15 +474,49 @@ int main()
         }
         case 'm': // Load step trajectory
         {
+            NU32DIP_ReadUART1(buffer, BUF_SIZE);
+            sscanf(buffer, "%d", &trajLength);
+            for (int i = 0; i < trajLength; i++)
+            {
+                NU32DIP_ReadUART1(buffer, BUF_SIZE);
+                sscanf(buffer, "%f", &trackRefAngle[i]);
+            }
             break;
         }
         case 'n': // Load cubic trajectory
         {
+            NU32DIP_ReadUART1(buffer, BUF_SIZE);
+            sscanf(buffer, "%d", &trajLength);
+            for (int i = 0; i < trajLength; i++)
+            {
+                NU32DIP_ReadUART1(buffer, BUF_SIZE);
+                sscanf(buffer, "%f", &trackRefAngle[i]);
+            }
             break;
         }
         case 'o': // Execute trajectory
         {
+            set_mode(TRACK);
+            // Idea for where to place plotting code from Pushkar Dave
+            enum mode_t curMode = get_mode();
+            while (curMode != IDLE)
+            {
+                curMode = get_mode();
+            }
+            if (curMode == IDLE)
+            {
+                sendTrackDataToPython(trackRefAngle, trackActualAngle, trajLength);
+            }
+            for (int i = 0; i < 1000; i++)
+            {
+                trackRefAngle[i] = 0.0;
+                trackActualAngle[i] = 0.0;
+            }
             break;
+        }
+        case 'z':
+        {
+            sendTrackDataToPython(trackRefAngle, trackActualAngle, trajLength);
         }
         default:
         {

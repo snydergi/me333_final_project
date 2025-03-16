@@ -158,7 +158,16 @@ while not has_quit:
     elif (selection == 'k'):  # test current control
         read_plot_matrix()
     elif (selection == 'm'):  # load step trajectory
-        print('')
+        ref = genRef('step')
+        # print(len(ref))
+        t = range(len(ref))
+        plt.plot(t, ref, 'r*-')
+        plt.ylabel('ange in degrees')
+        plt.xlabel('index')
+        plt.show()
+        ser.write((str(len(ref)) + '\n').encode())
+        for i in ref:
+            ser.write((str(i) + '\n').encode())
     elif (selection == 'n'):  # load cubic trajectory
         ref = genRef('cubic')
         # print(len(ref))
@@ -171,6 +180,8 @@ while not has_quit:
         for i in ref:
             ser.write((str(i) + '\n').encode())
     elif (selection == 'o'):  # execute trajectory
+        read_plot_matrix()
+    elif (selection == 'z'):  # execute trajectory
         read_plot_matrix()
     else:
         print('Invalid Selection ' + selection_endline)
