@@ -14,8 +14,9 @@ volatile float kd_deg = 100.0;
 volatile float desiredAngle = 0;
 volatile int posRefCurrent = 0;
 volatile int trajLength = 0;
-volatile float trackRefAngle[1000];
-volatile float trackActualAngle[1000];
+static float trackRefAngle[1000];
+static float trackActualAngle[1000];
+char buffer[BUF_SIZE];
 
 void timer2init()
 {
@@ -67,7 +68,6 @@ void initHBridgeDir()
 void sendITestDataToPython(int *refArray, int *actualArray, int length)
 {
     // Send the number of data points
-    char buffer[50];
     sprintf(buffer, "%d\n", length);
     NU32DIP_WriteUART1(buffer);
 
@@ -82,7 +82,6 @@ void sendITestDataToPython(int *refArray, int *actualArray, int length)
 void sendTrackDataToPython(float *refArray, float *actualArray, int length)
 {
     // Send the number of data points
-    char buffer[50];
     sprintf(buffer, "%d\n", length);
     NU32DIP_WriteUART1(buffer);
 
@@ -98,7 +97,6 @@ void sendPositionDataToPython(int *refCurrent, int *refAngle, int *actualCurrent
                               int *actualAngle, int length)
 {
     // Send the number of data points
-    char buffer[50];
     sprintf(buffer, "%d\n", length);
     NU32DIP_WriteUART1(buffer);
 
@@ -173,7 +171,8 @@ void __ISR(_TIMER_1_VECTOR, IPL6SOFT) PositionController(void)
             desiredAngle = trackRefAngle[trajCounter - 1];
             prevTrackError = 0;
             integralAngle = 0;
-            set_mode(HOLD);
+            trajCounter = 0;
+            set_mode(IDLE);
             // sendTrackDataToPython(trackRefAngle, trackActualAngle, trajLength);
         }
     }
@@ -324,7 +323,6 @@ int main()
     UART2_Startup();
     INA219_Startup();
     set_mode(IDLE);
-    char buffer[BUF_SIZE];
     NU32DIP_Startup(); // cache on, min flash wait, interrupts on, LED/button init, UART init
     NU32DIP_GREEN = 1; // turn off the LEDs
     NU32DIP_YELLOW = 1;
@@ -506,12 +504,13 @@ int main()
             if (curMode == IDLE)
             {
                 sendTrackDataToPython(trackRefAngle, trackActualAngle, trajLength);
+                set_mode(HOLD);
             }
-            for (int i = 0; i < 1000; i++)
-            {
-                trackRefAngle[i] = 0.0;
-                trackActualAngle[i] = 0.0;
-            }
+            // for (int i = 0; i < 1000; i++)
+            // {
+            //     trackRefAngle[i] = 0.0;
+            //     trackActualAngle[i] = 0.0;
+            // }
             break;
         }
         case 'z':
